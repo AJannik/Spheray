@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.25366208, g: 0.25366208, b: 0.25366208, a: 1}
+  m_IndirectSpecularColor: {r: 0, g: 0, b: 0, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -212,6 +212,7 @@ Transform:
   m_LocalRotation: {x: 0.40821788, y: -0.23456968, z: 0.10938163, w: 0.8754261}
   m_LocalPosition: {x: 0, y: 1.2, z: -1.2}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
@@ -227,8 +228,8 @@ GameObject:
   - component: {fileID: 1945986993}
   - component: {fileID: 1945986992}
   - component: {fileID: 1945986991}
-  - component: {fileID: 1945986994}
   - component: {fileID: 1945986995}
+  - component: {fileID: 1945986994}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -297,6 +298,7 @@ Transform:
   m_LocalRotation: {x: 0.3420201, y: 0, z: 0, w: 0.9396927}
   m_LocalPosition: {x: 0, y: 1.2, z: -1.2}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 1
@@ -310,16 +312,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 1945986990}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8c9e3d5d51264baeb7e1c0bdb0dd5b90, type: 3}
+  m_Script: {fileID: 11500000, guid: 1292eb2d7674f16468cf7c16d77a164d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  shaderEventChannel: {fileID: 11400000, guid: e2ea4deb3b1be76479f528234327234b, type: 2}
-  shader: {fileID: 4800000, guid: 850bf1bf8d3410b4b8b7d77b4ff46f87, type: 3}
-  mainLight: {fileID: 857057629}
-  fixLightToCamera: 1
-  antiAliasing: 1
-  ambientOcclusionIterations: 0
-  ambientOcclusionStrength: 0
+  moveSpeed: 5
+  rotationSpeed: 2
 --- !u!114 &1945986995
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -329,8 +326,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 1945986990}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a017d1565b5e06d408a970dd86ae6550, type: 3}
+  m_Script: {fileID: 11500000, guid: 367fea18400704c46bed15e58adc928e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 5
-  rotationSpeed: 2
+  shaderEventChannel: {fileID: 11400000, guid: e6ce9cecf27ee224fae08d40778bbb79, type: 2}
+  shader: {fileID: 4800000, guid: f5f0c3ff417171a46ba9d16bf71d8e88, type: 3}
+  mainLight: {fileID: 857057629}
+  fixLightToCamera: 0
+  antiAliasing: 1
+  ambientOcclusionIterations: 0
+  ambientOcclusionStrength: 0

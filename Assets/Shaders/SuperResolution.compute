@@ -1,10 +1,76 @@
 #pragma kernel SuperResolution
+#pragma kernel Fill
+#pragma kernel Blend
 
-RWTexture2D<float4> tex;
-RWTexture2D<float4> Result;
+shared RWTexture2D<float4> tex;
+shared RWTexture2D<float4> Result;
+
+float4 interpolatePix(int3 id, int width, int height)
+{
+    float4 blurSum = 0;
+
+    for (int xOffset = -1; xOffset <= 1; xOffset++)
+    {
+        if(id.x + xOffset >= 0 && id.x + xOffset < width && xOffset != 0)
+        {
+            blurSum += Result[int2(id.x + xOffset, id.y)];
+        }
+    }
+
+    for (int yOffset = -1; yOffset <= 1; yOffset++)
+    {
+        if(id.y + yOffset >= 0 && id.y + yOffset < height && yOffset != 0)
+        {
+            blurSum += Result[int2(id.x, id.y + yOffset)];
+        }
+    }
+
+    return  blurSum /= 4.0;
+}
+
+float4 boxBlur(int3 id, int width, int height)
+{
+    float4 blurSum = 0;
+
+    for (int xOffset = -1; xOffset <= 1; xOffset++)
+    {
+        for (int yOffset = -1; yOffset <= 1; yOffset++)
+        {
+            if(id.x + xOffset >= 0 && id.x + xOffset < width && id.y + yOffset >= 0 && id.y + yOffset < height)
+            {
+                blurSum += Result[int2(id.x + xOffset, id.y + yOffset)];
+            }
+        }
+    }
+
+    return  blurSum /= 9.0;
+}
 
 [numthreads(8,8,1)]
 void SuperResolution(uint3 id : SV_DispatchThreadID)
 {
-    Result[id.xy] = tex[id.xy / 2];
+    if (id.x % 2 == id.y % 2)
+    {
+        Result[id.xy] = tex[id.xy / 2];
+    }
+}
+
+[numthreads(8,8,1)]
+void Fill(uint3 id : SV_DispatchThreadID)
+{
+    uint width, height;
+    Result.GetDimensions(width, height);
+
+    if (id.x % 2 != id.y % 2)
+    {
+        Result[id.xy] = interpolatePix(id, width, height);
+    }
+}
+
+[numthreads(8,8,1)]
+void Blend(uint3 id : SV_DispatchThreadID)
+{
+    uint width, height;
+    Result.GetDimensions(width, height);
+    Result[id.xy] = boxBlur(id, width, height);
 }

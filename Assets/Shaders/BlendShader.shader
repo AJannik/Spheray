@@ -49,10 +49,10 @@ Shader "Unlit/BlendShader"
             float relativeThreshold;
             float subpixelBlending;
 
-            #define EDGE_STEP_COUNT 15
-            #define EDGE_STEPS 1, 1.5, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 8, 8
+            #define EDGE_STEP_COUNT 16
+            #define EDGE_STEPS 1, 1.5, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 8, 8, 16
             #define EDGE_GUESS 16
-            #define LUMINANCE_SAMPLE_COUNT 14
+            #define LUMINANCE_SAMPLE_COUNT 5
 
             static const float edgeSteps[EDGE_STEP_COUNT] = {EDGE_STEPS};
 

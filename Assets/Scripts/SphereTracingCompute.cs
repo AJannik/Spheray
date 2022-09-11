@@ -14,13 +14,15 @@ public class SphereTracingCompute : MonoBehaviour
     [SerializeField, Range(0, 8)] private int aoIterations;
     [SerializeField, Range(0f, 1f)] private float aoIntensity;
     [SerializeField, Range(0.01f, 1f)] private float aoSize = 0.2f;
-    [SerializeField, Range(0.0312f, 0.0833f)] private float fxaaThreshold = 0.0312f;
-    [SerializeField, Range(0.063f, 0.333f)] private float relativeThreshold = 0.063f;
+    [SerializeField, Range(0.00312f, 0.833f)] private float fxaaThreshold = 0.0312f;
+    [SerializeField, Range(0.0063f, 0.9333f)] private float relativeThreshold = 0.063f;
     [SerializeField, Range(0f, 1f)] private float subPixelBlending = 1f;
 
     private Material material;
     private int tracerKernel;
     private int srKernel;
+    private int fillKernel;
+    private int blendKernel;
     private RenderTexture texture;
     private RenderTexture lr;
     private Camera cam;
@@ -67,8 +69,14 @@ public class SphereTracingCompute : MonoBehaviour
         texture.Create();
         tracerKernel = shader.FindKernel("CSMain");
         srKernel = superResShader.FindKernel("SuperResolution");
+        fillKernel = superResShader.FindKernel("Fill");
+        blendKernel = superResShader.FindKernel("Blend");
         shader.SetTexture(tracerKernel, resultShaderProp, lr);
+        superResShader.SetTexture(srKernel, "tex", lr);
         superResShader.SetTexture(srKernel, "Result", texture);
+        superResShader.SetTexture(fillKernel, "tex", lr);
+        superResShader.SetTexture(fillKernel, "Result", texture);
+        superResShader.SetTexture(blendKernel, "Result", texture);
         shader.SetInt(numPrimitivesShaderProp, 0);
         shader.SetFloat("maxDist", 64f);
         shader.SetFloat("epsilon", 0.004f);
@@ -116,8 +124,9 @@ public class SphereTracingCompute : MonoBehaviour
     private void RunComputeShader()
     {
         shader.Dispatch(tracerKernel, lr.width / 8, lr.height / 8, 1);
-        superResShader.SetTexture(srKernel, "tex", lr);
         superResShader.Dispatch(srKernel, texture.width / 8, texture.height / 8, 1);
+        superResShader.Dispatch(fillKernel, texture.width / 8, texture.height / 8, 1);
+        superResShader.Dispatch(blendKernel, texture.width / 8, texture.height / 8, 1);
     }
 
     private void UpdateShaderBuffer(ComputeBuffer buffer)
