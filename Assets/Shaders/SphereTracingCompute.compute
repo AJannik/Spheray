@@ -1,0 +1,308 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+#include <HLSLSupport.cginc>
+#include <UnityShaderVariables.cginc>
+
+RWTexture2D<float4> Result;
+
+struct Primitive
+{
+    float3 pos;
+    float3 size;
+    float bevel;
+    float4x4 rotationMatrix;
+    int sdfOperation;
+    int parentIndex;
+    int type;
+};
+
+StructuredBuffer<Primitive> primitives;
+int numPrimitives;
+float4x4 camToWorld;
+float epsilon = 0.004; // stripe artifacts if too small
+int maxSteps = 128;
+float maxDist = 64;
+float3 lightPos;
+float3 lightColor;
+float lightIntensity;
+int reflectionCount;
+float reflectionIntensity;
+int aoIterations;
+float aoIntensity;
+float aoSize;
+
+struct Ray
+{
+    float3 origin; // origin of ray
+    float3 dir; // direction of ray (unit length assumed)
+};
+
+float3 transform(float3 p, Primitive primitive)
+{
+    p -= primitive.pos;
+    return mul(float4(p, 1), primitive.rotationMatrix).xyz;
+}
+
+float sdSphere(float3 p, float r)
+{
+    return length(p) - r;
+}
+
+float sdRoundBox(float3 p, float3 b, float r)
+{
+    const float3 q = abs(p) - b;
+    return length(max(q, 0.0)) + min(max(q.x, max(q.y, q.z)), 0.0) - r;
+}
+
+float sdPlane(float3 p, float3 normal, float h)
+{
+    return dot(p, normal) + h;
+}
+
+float sdRoundedCylinder(float3 p, float radius, float rb, float height)
+{
+    const float2 d = float2(length(p.xz) - 2.0 * radius + rb, abs(p.y) - height);
+    return min(max(d.x, d.y), 0.0) + length(max(d, 0.0)) - rb;
+}
+
+float sdEllipsoid(float3 p, float3 r)
+{
+    const float k0 = length(p / r);
+    const float k1 = length(p / (r * r));
+    return k0 * (k0 - 1.0) / k1;
+}
+
+float sdTorus(float3 p, float2 t)
+{
+    float2 q = float2(length(p.xz) - t.x, p.y);
+    return length(q) - t.y;
+}
+
+float sdHexPrism(float3 p, float3 h)
+{
+    const float3 k = float3(-0.8660254, 0.5, 0.57735);
+    p = abs(p);
+    p.xy -= 2.0 * min(dot(k.xy, p.xy), 0.0) * k.xy;
+    const float2 d = float2(
+        length(p.xy - float2(clamp(p.x, -k.z * h.x, k.z * h.x), h.x)) * sign(p.y - h.x),
+        p.z - h.y);
+    return min(max(d.x, d.y), 0.0) + length(max(d, 0.0));
+}
+
+float smin(float a, float b, float k)
+{
+    const float h = clamp(0.5 + 0.5 * (b - a) / k, 0, 1);
+    return lerp(b, a, h) - k * h * (1 - h);
+}
+
+float smax(float a, float b, float k)
+{
+    k = -k;
+    const float h = clamp(0.5 + 0.5 * (b - a) / k, 0, 1);
+    return lerp(b, a, h) - k * h * (1 - h);
+}
+
+float intersectSDF(float distA, float distB, float smooth)
+{
+    return smax(distA, distB, smooth);
+}
+
+float unionSDF(float distA, float distB, float smooth)
+{
+    return smin(distA, distB, smooth);
+}
+
+float differenceSDF(float distA, float distB, float smooth)
+{
+    return smax(distA, -distB, smooth);
+}
+
+fixed4 materialColor(float3 p)
+{
+    return float4(0.8, 0.2, 0.2, 1);
+}
+
+float getPrimitiveSdf(float3 p, Primitive primitive)
+{
+    switch (primitive.type)
+    {
+    case 0:
+        return sdSphere(p, primitive.size.x);
+    case 1:
+        return sdRoundBox(p, primitive.size, primitive.bevel);
+    case 2:
+        return sdPlane(p, float3(0, 1, 0), 1);
+    case 3:
+        return sdRoundedCylinder(p, primitive.size.x, primitive.bevel, primitive.size.y);
+    case 4:
+        return sdEllipsoid(p, primitive.size);
+    case 5:
+        return sdTorus(p, primitive.size.xy);
+    case 6:
+        return sdHexPrism(p, primitive.size);
+    default:
+        return -1;
+    }
+}
+
+float getSDF(float parent, float current, int index)
+{
+    switch (primitives[index].sdfOperation)
+    {
+    case 0:
+        return unionSDF(parent, current, 0.03);
+    case 1:
+        return differenceSDF(parent, current, 0.03);
+    case 2:
+        return intersectSDF(parent, current, 0.03);
+    default:
+        return current;
+    }
+}
+
+float distFunc(float3 p)
+{
+    if (numPrimitives < 1)
+    {
+        return -1;
+    }
+
+    float distFields[20];
+
+    for (int i = 0; i < numPrimitives; i++)
+    {
+        distFields[i] = getPrimitiveSdf(transform(p, primitives[i]), primitives[i]);
+    }
+
+    for (int ind = numPrimitives - 1; ind > 0; ind--)
+    {
+        distFields[primitives[ind].parentIndex] = getSDF(distFields[primitives[ind].parentIndex],
+                                                         distFields[ind], ind);
+    }
+
+    return distFields[0];
+}
+
+float3 calcNormal(float3 p)
+{
+    const float2 k = float2(1, -1);
+    return normalize(
+        k.xyy * distFunc(p + k.xyy * epsilon) +
+        k.yyx * distFunc(p + k.yyx * epsilon) +
+        k.yxy * distFunc(p + k.yxy * epsilon) +
+        k.xxx * distFunc(p + k.xxx * epsilon));
+}
+
+
+float rayCast(Ray ray, float t)
+{
+    for (int i = 0; i < maxSteps && t < maxDist; i++)
+    {
+        const float dist = distFunc(ray.origin + t * ray.dir);
+        t += dist;
+        if (epsilon > dist) return t;
+    }
+
+    return -1;
+}
+
+
+bool hit(float t)
+{
+    return -0.5 < t;
+}
+
+float ambientOcclusion(float3 p, float3 normal)
+{
+    float ao = 0;
+    for (int i = 1; i <= aoIterations; i++)
+    {
+        const float dist = aoSize * i;
+        ao += max(0, (dist - distFunc(p + normal * dist)) / dist);
+    }
+
+    return 1 - ao * aoIntensity;
+}
+
+float softShadow(Ray ray, float t, float k)
+{
+    float res = 1.0;
+    for (int i = 0; i < maxSteps && t < maxDist; i++)
+    {
+        const float h = distFunc(ray.origin + t * ray.dir);
+        if (h < epsilon)
+        {
+            return 0.0;
+        }
+
+        res = min(res, k * h / t);
+        t += h;
+    }
+
+    return res;
+}
+
+float3 shadeLocal(float3 p, float3 normal)
+{
+    Ray ray;
+    ray.origin = p;
+    ray.dir = normalize(lightPos);
+    
+    return (lightColor * dot(normal, ray.dir) * materialColor(p)) * lightIntensity * ambientOcclusion(p, normal);// * (softShadow(ray, 0.3, 4) * 0.75 + 0.25) ;
+}
+
+float4 trace(Ray ray)
+{
+    float t = rayCast(ray, epsilon);
+    if (!hit(t))
+    {
+        return float4(0, 0, 0, 0);
+    }
+
+    float3 p = ray.origin + t * ray.dir;
+    float3 normal = calcNormal(p);
+    float4 color = float4(shadeLocal(p, normal), 1);
+
+    if (reflectionCount > 0)
+    {
+        ray.dir = normalize(reflect(ray.dir, normal));
+        ray.origin = p + ray.dir * 0.01;
+        t = rayCast(ray, epsilon);
+        if (hit(t))
+        {
+            p = ray.origin + t * ray.dir;
+            normal = calcNormal(p);
+            color += float4(shadeLocal(p, normal) * reflectionIntensity, 0);
+
+            if (reflectionCount > 1)
+            {
+                ray.dir = normalize(reflect(ray.dir, normal));
+                ray.origin = p + ray.dir * 0.01;
+                t = rayCast(ray, epsilon);
+                if (hit(t))
+                {
+                    p = ray.origin + t * ray.dir;
+                    normal = calcNormal(p);
+                    color += float4(shadeLocal(p, normal) * reflectionIntensity, 0);
+                }
+            }
+        }
+    }
+
+    return color;
+}
+
+[numthreads(8,8,1)]
+void CSMain(uint3 id : SV_DispatchThreadID)
+{
+    int width, height;
+    Result.GetDimensions(width, height);
+
+    //camera setup
+    Ray cameraRay;
+    cameraRay.origin = _WorldSpaceCameraPos;
+    cameraRay.dir = mul(unity_CameraInvProjection, float4(id.xy / float2(width, height) * 2 - 1, 0, 1)).xyz;
+    cameraRay.dir = normalize(mul(camToWorld, float4(cameraRay.dir, 0)).xyz);
+
+    Result[id.xy] = trace(cameraRay);
+}
