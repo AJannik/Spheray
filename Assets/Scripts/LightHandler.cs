@@ -17,7 +17,7 @@ public class LightHandler : MonoBehaviour
     {
         oldColor = lightComponent.color;
         oldIntensity = lightComponent.intensity;
-        //shaderEventChannel.RaiseLightChanged();
+        shaderEventChannel.RaiseLightChanged();
     }
 
     private void Update()

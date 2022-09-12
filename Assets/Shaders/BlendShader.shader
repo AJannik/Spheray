@@ -47,12 +47,12 @@ Shader "Unlit/BlendShader"
             sampler2D _BgTex;
             float subpixelBlending;
 
-            #define CONTRAST_THRESHOLD 0.0312;
-            #define RELATIVE_THRESHOLD 0.063;
-            #define EDGE_STEP_COUNT 16
-            #define EDGE_STEPS 1, 1.5, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 8, 8, 16
-            #define EDGE_GUESS 16
-            #define LUMINANCE_SAMPLE_COUNT 5
+            #define CONTRAST_THRESHOLD 0.0833
+            #define RELATIVE_THRESHOLD 0.166
+            #define EDGE_STEP_COUNT 10
+            #define EDGE_STEPS 1, 1.5, 2, 2, 2, 2, 2, 2, 2, 4
+            #define EDGE_GUESS 8
+            #define LUMINANCE_SAMPLE_COUNT 1
 
             static const float edgeSteps[EDGE_STEP_COUNT] = {EDGE_STEPS};
 
@@ -286,12 +286,13 @@ Shader "Unlit/BlendShader"
                 {
                     uv.x += e.pixelStep * finalBlend;
                 }
+                
                 return float4(Sample(uv).rgb, l.m);
             }
 
             fixed4 frag(v2f i) : SV_Target
             {
-                float4 col = Fxaa(i.uv);
+                float4 col = Sample(i.uv);
                 col.rgb = GammaToLinearSpace(col.rgb);
                 return col;
             }

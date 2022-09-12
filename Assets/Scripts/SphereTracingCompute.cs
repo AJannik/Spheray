@@ -9,6 +9,7 @@ public class SphereTracingCompute : MonoBehaviour
     [SerializeField] private Shader renderShader;
     [SerializeField] private Light mainLight;
     [SerializeField] private bool fixLightToCamera;
+    [SerializeField, Range(0.5f, 1f)] private float quality = 0.5f;
     [SerializeField, Range(0, 2)] private int reflectionIterations;
     [SerializeField, Range(0f, 1f)] private float reflectionIntensity;
     [SerializeField, Range(0f, 1f)] private float aoIntensity;
@@ -27,6 +28,7 @@ public class SphereTracingCompute : MonoBehaviour
     private float oldReflectionIntensity;
     private float oldAoIntensity;
     private float oldAntiAliasing;
+    private float oldQuality;
     private readonly int camToWorldShaderProp = Shader.PropertyToID("camToWorld");
     private readonly int lightPosShaderProp = Shader.PropertyToID("lightPos");
     private readonly int lightColorShaderProp = Shader.PropertyToID("lightColor");
@@ -65,7 +67,7 @@ public class SphereTracingCompute : MonoBehaviour
     private void Awake()
     {
         texture = new RenderTexture(1920, 1080, 16) {enableRandomWrite = true};
-        lr = new RenderTexture(1920 / 2, 1080 / 2, 8) {enableRandomWrite = true};
+        lr = new RenderTexture((int) (1920 * quality), (int) (1080 * quality), 8) {enableRandomWrite = true};
         lr.Create();
         texture.Create();
         
@@ -73,14 +75,15 @@ public class SphereTracingCompute : MonoBehaviour
         srKernel = superResShader.FindKernel("SuperResolution");
         fillKernel = superResShader.FindKernel("Fill");
         blendKernel = superResShader.FindKernel("Blend");
+        material = new Material(renderShader) {hideFlags = HideFlags.HideAndDontSave, mainTexture = texture};
         oldFov = Camera.fieldOfView;
         oldAntiAliasing = antiAliasing;
         oldAoIntensity = aoIntensity;
         oldReflectionIntensity = reflectionIntensity;
         oldReflectionIterations = reflectionIterations;
-        transform.hasChanged = false;
+        oldQuality = quality;
         
-        //material.SetFloat(subpixelBlendingShaderProp, antiAliasing);
+        material.SetFloat(subpixelBlendingShaderProp, antiAliasing);
         shader.SetTexture(tracerKernel, resultShaderProp, lr);
         shader.SetInt(numPrimitivesShaderProp, 0);
         shader.SetFloat("maxDist", 64f);
@@ -98,6 +101,7 @@ public class SphereTracingCompute : MonoBehaviour
         superResShader.SetTexture(fillKernel, "tex", lr);
         superResShader.SetTexture(fillKernel, "Result", texture);
         superResShader.SetTexture(blendKernel, "Result", texture);
+        superResShader.SetFloat("quality", quality);
     }
 
     private void Update()
@@ -106,23 +110,17 @@ public class SphereTracingCompute : MonoBehaviour
         {
             mainLight.transform.position = Camera.transform.position;
         }
-        
-        UpdateSettings(false);
     }
 
     private void OnRenderImage(RenderTexture src, RenderTexture dest)
     {
-        if (!material)
-        {
-            material = new Material(renderShader) {hideFlags = HideFlags.HideAndDontSave, mainTexture = texture};
-        }
-        
         if (Math.Abs(oldAntiAliasing - antiAliasing) > 0.05)
         {
             material.SetFloat(subpixelBlendingShaderProp, antiAliasing);
             oldAntiAliasing = antiAliasing;
         }
 
+        UpdateSettings();
         material.SetTexture(bgTexShaderProp, src);
 
         Graphics.Blit(texture, dest, material);
@@ -130,17 +128,19 @@ public class SphereTracingCompute : MonoBehaviour
 
     private void RunComputeShader()
     {
-        Debug.Log("VAR");
         shader.Dispatch(tracerKernel, lr.width / 8, lr.height / 8, 1);
         superResShader.Dispatch(srKernel, texture.width / 8, texture.height / 8, 1);
-        superResShader.Dispatch(fillKernel, texture.width / 8, texture.height / 8, 1);
-        superResShader.Dispatch(blendKernel, texture.width / 8, texture.height / 8, 1);
+        if (quality < 0.9)
+        {
+            superResShader.Dispatch(fillKernel, texture.width / 8, texture.height / 8, 1);
+            superResShader.Dispatch(blendKernel, texture.width / 8, texture.height / 8, 1);
+        }
     }
 
-    private void UpdateSettings(bool update)
+    private void UpdateSettings(bool update = false)
     {
         if (oldReflectionIterations != reflectionIterations ||
-            Math.Abs(oldReflectionIntensity - reflectionIntensity) > 0.1)
+            Math.Abs(oldReflectionIntensity - reflectionIntensity) > 0.01)
         {
             oldReflectionIterations = reflectionIterations;
             oldReflectionIntensity = reflectionIntensity;
@@ -149,7 +149,7 @@ public class SphereTracingCompute : MonoBehaviour
             update = true;
         }
 
-        if (Math.Abs(oldAoIntensity - aoIntensity) > 0.1)
+        if (Math.Abs(oldAoIntensity - aoIntensity) > 0.01)
         {
             oldAoIntensity = aoIntensity;
             shader.SetFloat("aoIntensity", aoIntensity);
@@ -161,6 +161,18 @@ public class SphereTracingCompute : MonoBehaviour
             oldFov = Camera.fieldOfView;
             transform.hasChanged = false;
             shader.SetMatrix(camToWorldShaderProp, Camera.cameraToWorldMatrix);
+            update = true;
+        }
+
+        if (Math.Abs(quality - oldQuality) > 0.01)
+        {
+            lr = new RenderTexture((int) (1920 * quality), (int) (1080 * quality), 8) {enableRandomWrite = true};
+            lr.Create();
+            shader.SetTexture(tracerKernel, resultShaderProp, lr);
+            superResShader.SetTexture(srKernel, "tex", lr);
+            superResShader.SetTexture(fillKernel, "tex", lr);
+            superResShader.SetFloat("quality", quality);
+            oldQuality = quality;
             update = true;
         }
 
