@@ -5,6 +5,9 @@
 
 RWTexture2D<float4> Result;
 
+#define AO_SIZE 0.2;
+#define AO_ITERATIONS 4;
+
 struct Primitive
 {
     float3 pos;
@@ -27,9 +30,7 @@ float3 lightColor;
 float lightIntensity;
 int reflectionCount;
 float reflectionIntensity;
-int aoIterations;
 float aoIntensity;
-float aoSize;
 
 struct Ray
 {
@@ -215,6 +216,8 @@ bool hit(float t)
 float ambientOcclusion(float3 p, float3 normal)
 {
     float ao = 0;
+    int aoIterations = AO_ITERATIONS;
+    float aoSize = AO_SIZE;
     for (int i = 1; i <= aoIterations; i++)
     {
         const float dist = aoSize * i;

@@ -11,12 +11,8 @@ public class SphereTracingCompute : MonoBehaviour
     [SerializeField] private bool fixLightToCamera;
     [SerializeField, Range(0, 2)] private int reflectionIterations;
     [SerializeField, Range(0f, 1f)] private float reflectionIntensity;
-    [SerializeField, Range(0, 8)] private int aoIterations;
     [SerializeField, Range(0f, 1f)] private float aoIntensity;
-    [SerializeField, Range(0.01f, 1f)] private float aoSize = 0.2f;
-    [SerializeField, Range(0.00312f, 0.833f)] private float fxaaThreshold = 0.0312f;
-    [SerializeField, Range(0.0063f, 0.9333f)] private float relativeThreshold = 0.063f;
-    [SerializeField, Range(0f, 1f)] private float subPixelBlending = 1f;
+    [SerializeField, Range(0f, 1f)] private float antiAliasing = 1f;
 
     private Material material;
     private int tracerKernel;
@@ -27,6 +23,10 @@ public class SphereTracingCompute : MonoBehaviour
     private RenderTexture lr;
     private Camera cam;
     private float oldFov;
+    private int oldReflectionIterations;
+    private float oldReflectionIntensity;
+    private float oldAoIntensity;
+    private float oldAntiAliasing;
     private readonly int camToWorldShaderProp = Shader.PropertyToID("camToWorld");
     private readonly int lightPosShaderProp = Shader.PropertyToID("lightPos");
     private readonly int lightColorShaderProp = Shader.PropertyToID("lightColor");
@@ -35,6 +35,7 @@ public class SphereTracingCompute : MonoBehaviour
     private readonly int primitivesShaderProp = Shader.PropertyToID("primitives");
     private readonly int numPrimitivesShaderProp = Shader.PropertyToID("numPrimitives");
     private readonly int bgTexShaderProp = Shader.PropertyToID("_BgTex");
+    private readonly int subpixelBlendingShaderProp = Shader.PropertyToID("subpixelBlending");
 
     public Camera Camera
     {
@@ -67,43 +68,46 @@ public class SphereTracingCompute : MonoBehaviour
         lr = new RenderTexture(1920 / 2, 1080 / 2, 8) {enableRandomWrite = true};
         lr.Create();
         texture.Create();
+        
         tracerKernel = shader.FindKernel("CSMain");
         srKernel = superResShader.FindKernel("SuperResolution");
         fillKernel = superResShader.FindKernel("Fill");
         blendKernel = superResShader.FindKernel("Blend");
+        oldFov = Camera.fieldOfView;
+        oldAntiAliasing = antiAliasing;
+        oldAoIntensity = aoIntensity;
+        oldReflectionIntensity = reflectionIntensity;
+        oldReflectionIterations = reflectionIterations;
+        transform.hasChanged = false;
+        
+        //material.SetFloat(subpixelBlendingShaderProp, antiAliasing);
         shader.SetTexture(tracerKernel, resultShaderProp, lr);
+        shader.SetInt(numPrimitivesShaderProp, 0);
+        shader.SetFloat("maxDist", 64f);
+        shader.SetFloat("epsilon", 0.004f);
+        shader.SetInt("maxSteps", 128);
+        shader.SetMatrix(camToWorldShaderProp, Camera.cameraToWorldMatrix);
+        shader.SetInt("reflectionCount", reflectionIterations);
+        shader.SetFloat("reflectionIntensity", reflectionIntensity);
+        shader.SetFloat("aoIntensity", aoIntensity);
+        shader.SetVector(lightPosShaderProp, mainLight.transform.position);
+        shader.SetVector(lightColorShaderProp, mainLight.color);
+        shader.SetFloat(lightIntensityShaderProp, mainLight.intensity);
         superResShader.SetTexture(srKernel, "tex", lr);
         superResShader.SetTexture(srKernel, "Result", texture);
         superResShader.SetTexture(fillKernel, "tex", lr);
         superResShader.SetTexture(fillKernel, "Result", texture);
         superResShader.SetTexture(blendKernel, "Result", texture);
-        shader.SetInt(numPrimitivesShaderProp, 0);
-        shader.SetFloat("maxDist", 64f);
-        shader.SetFloat("epsilon", 0.004f);
-        shader.SetInt("maxSteps", 128);
-        oldFov = Camera.fieldOfView;
     }
 
     private void Update()
     {
-        shader.SetInt("reflectionCount", reflectionIterations);
-        shader.SetFloat("reflectionIntensity", reflectionIntensity);
-        shader.SetInt("aoIterations", aoIterations);
-        shader.SetFloat("aoIntensity", aoIntensity);
-        shader.SetFloat("aoSize", aoSize);
-        
         if (fixLightToCamera)
         {
             mainLight.transform.position = Camera.transform.position;
         }
         
-        if (transform.hasChanged || Math.Abs(oldFov - Camera.fieldOfView) > 0.01f)
-        {
-            shader.SetMatrix(camToWorldShaderProp, Camera.cameraToWorldMatrix);
-            oldFov = Camera.fieldOfView;
-            transform.hasChanged = false;
-            RunComputeShader();
-        }
+        UpdateSettings(false);
     }
 
     private void OnRenderImage(RenderTexture src, RenderTexture dest)
@@ -113,20 +117,57 @@ public class SphereTracingCompute : MonoBehaviour
             material = new Material(renderShader) {hideFlags = HideFlags.HideAndDontSave, mainTexture = texture};
         }
         
-        material.SetFloat("contrastThreshold", fxaaThreshold);
-        material.SetFloat("relativeThreshold", relativeThreshold);
-        material.SetFloat("subpixelBlending", subPixelBlending);
+        if (Math.Abs(oldAntiAliasing - antiAliasing) > 0.05)
+        {
+            material.SetFloat(subpixelBlendingShaderProp, antiAliasing);
+            oldAntiAliasing = antiAliasing;
+        }
+
         material.SetTexture(bgTexShaderProp, src);
-        
+
         Graphics.Blit(texture, dest, material);
     }
 
     private void RunComputeShader()
     {
+        Debug.Log("VAR");
         shader.Dispatch(tracerKernel, lr.width / 8, lr.height / 8, 1);
         superResShader.Dispatch(srKernel, texture.width / 8, texture.height / 8, 1);
         superResShader.Dispatch(fillKernel, texture.width / 8, texture.height / 8, 1);
         superResShader.Dispatch(blendKernel, texture.width / 8, texture.height / 8, 1);
+    }
+
+    private void UpdateSettings(bool update)
+    {
+        if (oldReflectionIterations != reflectionIterations ||
+            Math.Abs(oldReflectionIntensity - reflectionIntensity) > 0.1)
+        {
+            oldReflectionIterations = reflectionIterations;
+            oldReflectionIntensity = reflectionIntensity;
+            shader.SetInt("reflectionCount", reflectionIterations);
+            shader.SetFloat("reflectionIntensity", reflectionIntensity);
+            update = true;
+        }
+
+        if (Math.Abs(oldAoIntensity - aoIntensity) > 0.1)
+        {
+            oldAoIntensity = aoIntensity;
+            shader.SetFloat("aoIntensity", aoIntensity);
+            update = true;
+        }
+
+        if (transform.hasChanged || Math.Abs(oldFov - Camera.fieldOfView) > 0.01f)
+        {
+            oldFov = Camera.fieldOfView;
+            transform.hasChanged = false;
+            shader.SetMatrix(camToWorldShaderProp, Camera.cameraToWorldMatrix);
+            update = true;
+        }
+
+        if (update)
+        {
+            RunComputeShader();
+        }
     }
 
     private void UpdateShaderBuffer(ComputeBuffer buffer)

@@ -45,10 +45,10 @@ Shader "Unlit/BlendShader"
             float4 _MainTex_ST;
             uniform float4 _MainTex_TexelSize;
             sampler2D _BgTex;
-            float contrastThreshold;
-            float relativeThreshold;
             float subpixelBlending;
 
+            #define CONTRAST_THRESHOLD 0.0312;
+            #define RELATIVE_THRESHOLD 0.063;
             #define EDGE_STEP_COUNT 16
             #define EDGE_STEPS 1, 1.5, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 8, 8, 16
             #define EDGE_GUESS 16
@@ -127,7 +127,9 @@ Shader "Unlit/BlendShader"
 
             bool InThreshold(LuminanceData l)
             {
-                const float threshold = max(contrastThreshold, relativeThreshold * l.highest);
+                float a = CONTRAST_THRESHOLD;
+                float b = RELATIVE_THRESHOLD;
+                const float threshold = max(a, b * l.highest);
                 return l.contrast < threshold;
             }
 
