@@ -4,6 +4,7 @@
 
 shared RWTexture2D<float4> tex;
 shared RWTexture2D<float4> Result;
+float quality;
 
 float4 interpolatePix(int3 id, int width, int height)
 {
@@ -32,9 +33,9 @@ float4 boxBlur(int3 id, int width, int height)
 {
     float4 blurSum = 0;
 
-    for (int xOffset = -1; xOffset <= 1; xOffset++)
+    for (int xOffset = -2; xOffset <= 2; xOffset++)
     {
-        for (int yOffset = -1; yOffset <= 1; yOffset++)
+        for (int yOffset = -2; yOffset <= 2; yOffset++)
         {
             if(id.x + xOffset >= 0 && id.x + xOffset < width && id.y + yOffset >= 0 && id.y + yOffset < height)
             {
@@ -43,15 +44,15 @@ float4 boxBlur(int3 id, int width, int height)
         }
     }
 
-    return  blurSum /= 9.0;
+    return  blurSum /= 25.0;
 }
 
 [numthreads(8,8,1)]
 void SuperResolution(uint3 id : SV_DispatchThreadID)
 {
-    if (id.x % 2 == id.y % 2)
+    if (id.x % 2 == id.y % 2 || quality > 0.9)
     {
-        Result[id.xy] = tex[id.xy / 2];
+        Result[id.xy] = tex[id.xy * quality];
     }
 }
 
@@ -72,5 +73,5 @@ void Blend(uint3 id : SV_DispatchThreadID)
 {
     uint width, height;
     Result.GetDimensions(width, height);
-    Result[id.xy] = boxBlur(id, width, height);
+    Result[id.xy] = lerp(Result[id.xy], boxBlur(id, width, height), 0.33);
 }
