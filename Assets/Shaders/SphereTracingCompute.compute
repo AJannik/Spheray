@@ -295,17 +295,34 @@ float4 trace(Ray ray)
     return color;
 }
 
+float2 rand2(float2 uv)
+{
+    float noiseX = (frac(sin(dot(uv, float2(12.9898, 78.233))) * 43758.5453));
+    float noiseY = (frac(sin(dot(uv, float2(12.9898, 78.233) * 2.0)) * 43758.5453));
+    return float2(noiseX, noiseY);
+}
+
 [numthreads(8,8,1)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
     int width, height;
     Result.GetDimensions(width, height);
+    float2 uv = id.xy / float2(width, height) * 2 - 1;
 
     //camera setup
     Ray cameraRay;
-    cameraRay.origin = _WorldSpaceCameraPos;
-    cameraRay.dir = mul(unity_CameraInvProjection, float4(id.xy / float2(width, height) * 2 - 1, 0, 1)).xyz;
-    cameraRay.dir = normalize(mul(camToWorld, float4(cameraRay.dir, 0)).xyz);
+    float4 color;
+    
+    for (int aa = 0; aa < 2; aa++)
+    {
+        cameraRay.origin = _WorldSpaceCameraPos + float4(rand2(uv), 0, 0) * aa * 0.0001;
+        cameraRay.dir = mul(unity_CameraInvProjection, float4(uv, 0, 1)).xyz;
+        cameraRay.dir = normalize(mul(camToWorld, float4(cameraRay.dir, 0)).xyz + float4(rand2(uv), 0, 0) * aa * 0.00005);
 
-    Result[id.xy] = trace(cameraRay);
+        color += trace(cameraRay);
+    }
+
+    color /= 2;
+
+    Result[id.xy] = color;
 }

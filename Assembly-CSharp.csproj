@@ -51,7 +51,8 @@
      <Compile Include="Assets\Scripts\LightHandler.cs" />
      <Compile Include="Assets\AMD_FSR\AMD_FIDELITY_FX_FSR.cs" />
      <Compile Include="Assets\Scripts\SphereTracingCompute.cs" />
-     <None Include="Assets\Shaders\RCAS.compute" />
+     <Compile Include="Assets\Scripts\AmdFidelityFxFsrEffect.cs" />
+     <None Include="Assets\Shaders\Resources\RCAS.compute" />
      <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />
      <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Overlay.shader" />
      <None Include="Assets\AMD_FSR\Resources\ffx_a.hlsl" />
@@ -74,7 +75,7 @@
      <None Include="Assets\TextMesh Pro\Shaders\TMPro_Properties.cginc" />
      <None Include="Assets\TextMesh Pro\Shaders\TMPro_Surface.cginc" />
      <None Include="Assets\Shaders\SphereTracingCompute.compute" />
-     <None Include="Assets\Shaders\SuperResolution.compute" />
+     <None Include="Assets\Shaders\Resources\EASU.compute" />
      <None Include="Assets\TextMesh Pro\Resources\LineBreaking Following Characters.txt" />
      <None Include="Assets\AMD_FSR\Resources\EdgeAdaptiveScaleUpsampling.compute" />
      <None Include="Assets\Shaders\BlendShader.shader" />
