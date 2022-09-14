@@ -733,7 +733,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 0
-  m_AllowDynamicResolution: 0
+  m_AllowDynamicResolution: 1
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -768,9 +768,12 @@ MonoBehaviour:
   shaderEventChannel: {fileID: 11400000, guid: e6ce9cecf27ee224fae08d40778bbb79, type: 2}
   shader: {fileID: 7200000, guid: 2ad962860d0ce4045b8b96dbf08ec981, type: 3}
   superResShader: {fileID: 7200000, guid: 9a757fd57f2bbd143b5d28ddb578a899, type: 3}
+  rcasShader: {fileID: 7200000, guid: 2053ec7dbb730ff449222f9bf7fa517a, type: 3}
   renderShader: {fileID: 4800000, guid: 4cc54872339c36e48b16af3d185d693d, type: 3}
   mainLight: {fileID: 1604472753}
   fixLightToCamera: 0
+  scaleFactor: 1.3
+  sharpness: 0
   quality: 0.5
   reflectionIterations: 0
   reflectionIntensity: 0
@@ -808,7 +811,7 @@ MonoBehaviour:
     m_Bits: 2147483647
   stopNaNPropagation: 1
   finalBlitToCameraTarget: 0
-  antialiasingMode: 2
+  antialiasingMode: 3
   temporalAntialiasing:
     jitterSpread: 0.306
     sharpness: 0.31
@@ -849,7 +852,9 @@ MonoBehaviour:
   breakBeforeColorGrading: 0
   m_BeforeTransparentBundles: []
   m_BeforeStackBundles: []
-  m_AfterStackBundles: []
+  m_AfterStackBundles:
+  - assemblyQualifiedName: AMD_FIDELITY_FX.AMD_FIDELITY_FX_FSR_STACK, Assembly-CSharp,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
 --- !u!1 &1017836505
 GameObject:
   m_ObjectHideFlags: 0

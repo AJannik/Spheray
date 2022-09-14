@@ -52,7 +52,6 @@ Shader "Unlit/BlendShader"
             #define EDGE_STEP_COUNT 10
             #define EDGE_STEPS 1, 1.5, 2, 2, 2, 2, 2, 2, 2, 4
             #define EDGE_GUESS 8
-            #define LUMINANCE_SAMPLE_COUNT 1
 
             static const float edgeSteps[EDGE_STEP_COUNT] = {EDGE_STEPS};
 
@@ -96,28 +95,6 @@ Shader "Unlit/BlendShader"
                 l.nw = GetLuminance(uv, float2(-1, 1));
                 l.se = GetLuminance(uv, float2(1, -1));
                 l.sw = GetLuminance(uv, float2(-1, -1));
-
-                UNITY_UNROLL
-                for (int i = 2; i < LUMINANCE_SAMPLE_COUNT; i++)
-                {
-                    l.n += GetLuminance(uv, float2(0, 1) * i);
-                    l.e += GetLuminance(uv, float2(1, 0) * i);
-                    l.s += GetLuminance(uv, float2(0, -1) * i);
-                    l.w += GetLuminance(uv, float2(-1, 0) * i);
-                    l.ne += GetLuminance(uv, float2(1, 1) * i);
-                    l.nw += GetLuminance(uv, float2(-1, 1) * i);
-                    l.se += GetLuminance(uv, float2(1, -1) * i);
-                    l.sw += GetLuminance(uv, float2(-1, -1) * i);
-                }
-
-                l.n /= LUMINANCE_SAMPLE_COUNT - 1;
-                l.e /= LUMINANCE_SAMPLE_COUNT - 1;
-                l.s /= LUMINANCE_SAMPLE_COUNT - 1;
-                l.w /= LUMINANCE_SAMPLE_COUNT - 1;
-                l.ne /= LUMINANCE_SAMPLE_COUNT - 1;
-                l.nw /= LUMINANCE_SAMPLE_COUNT - 1;
-                l.se /= LUMINANCE_SAMPLE_COUNT - 1;
-                l.sw /= LUMINANCE_SAMPLE_COUNT - 1;
 
                 l.highest = max(max(max(max(l.n, l.e), l.s), l.w), l.m);
                 l.lowest = min(min(min(min(l.n, l.e), l.s), l.w), l.m);
