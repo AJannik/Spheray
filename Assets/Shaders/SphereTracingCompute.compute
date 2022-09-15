@@ -20,17 +20,18 @@ struct Primitive
 };
 
 StructuredBuffer<Primitive> primitives;
-int numPrimitives;
+uint numPrimitives;
 float4x4 camToWorld;
 float epsilon = 0.004; // stripe artifacts if too small
-int maxSteps = 128;
+uint maxSteps = 128;
 float maxDist = 64;
 float3 lightPos;
 float3 lightColor;
 float lightIntensity;
-int reflectionCount;
+uint reflectionCount;
 float reflectionIntensity;
 float aoIntensity;
+int aaSamples;
 
 struct Ray
 {
@@ -170,7 +171,7 @@ float distFunc(float3 p)
 
     float distFields[20];
 
-    for (int i = 0; i < numPrimitives; i++)
+    for (uint i = 0; i < numPrimitives; i++)
     {
         distFields[i] = getPrimitiveSdf(transform(p, primitives[i]), primitives[i]);
     }
@@ -197,7 +198,7 @@ float3 calcNormal(float3 p)
 
 float rayCast(Ray ray, float t)
 {
-    for (int i = 0; i < maxSteps && t < maxDist; i++)
+    for (uint i = 0; i < maxSteps && t < maxDist; i++)
     {
         const float dist = distFunc(ray.origin + t * ray.dir);
         t += dist;
@@ -230,7 +231,7 @@ float ambientOcclusion(float3 p, float3 normal)
 float softShadow(Ray ray, float t, float k)
 {
     float res = 1.0;
-    for (int i = 0; i < maxSteps && t < maxDist; i++)
+    for (uint i = 0; i < maxSteps && t < maxDist; i++)
     {
         const float h = distFunc(ray.origin + t * ray.dir);
         if (h < epsilon)
@@ -259,7 +260,7 @@ float4 trace(Ray ray)
     float t = rayCast(ray, epsilon);
     if (!hit(t))
     {
-        return float4(0, 0, 0, 0);
+        return float4(0.2, 0.2, 0.2, 1);
     }
 
     float3 p = ray.origin + t * ray.dir;
@@ -307,22 +308,23 @@ void CSMain(uint3 id : SV_DispatchThreadID)
 {
     int width, height;
     Result.GetDimensions(width, height);
-    float2 uv = id.xy / float2(width, height) * 2 - 1;
 
     //camera setup
     Ray cameraRay;
     float4 color;
     
-    for (int aa = 0; aa < 2; aa++)
+    for (int aa = 0; aa < aaSamples; aa++)
     {
-        cameraRay.origin = _WorldSpaceCameraPos + float4(rand2(uv), 0, 0) * aa * 0.0001;
+        float2 uv = id.xy / float2(width, height) * 2 - 1;
+        uv += + rand2(uv).xy * (aa - aaSamples / 2.0) * 0.0008;
+        cameraRay.origin = _WorldSpaceCameraPos;
         cameraRay.dir = mul(unity_CameraInvProjection, float4(uv, 0, 1)).xyz;
-        cameraRay.dir = normalize(mul(camToWorld, float4(cameraRay.dir, 0)).xyz + float4(rand2(uv), 0, 0) * aa * 0.00005);
+        cameraRay.dir = normalize(mul(camToWorld, float4(cameraRay.dir, 0)).xyz);
 
         color += trace(cameraRay);
     }
 
-    color /= 2;
+    color /= aaSamples;
 
     Result[id.xy] = color;
 }

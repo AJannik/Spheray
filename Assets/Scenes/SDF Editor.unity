@@ -489,10 +489,10 @@ MonoBehaviour:
   m_BeforeTransparentBundles: []
   m_BeforeStackBundles: []
   m_AfterStackBundles:
-  - assemblyQualifiedName: AmdFidelityFxFsrEffectSettings, Assembly-CSharp, Version=0.0.0.0,
-      Culture=neutral, PublicKeyToken=null
   - assemblyQualifiedName: AMD_FIDELITY_FX.AMD_FIDELITY_FX_FSR_STACK, Assembly-CSharp,
       Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+  - assemblyQualifiedName: AmdFidelityFxFsrEffect, Assembly-CSharp, Version=0.0.0.0,
+      Culture=neutral, PublicKeyToken=null
 --- !u!1 &778044827
 GameObject:
   m_ObjectHideFlags: 0
@@ -683,8 +683,6 @@ GameObject:
   - component: {fileID: 957625900}
   - component: {fileID: 957625904}
   - component: {fileID: 957625903}
-  - component: {fileID: 957625907}
-  - component: {fileID: 957625906}
   m_Layer: 0
   m_Name: Main Camera (1)
   m_TagString: MainCamera
@@ -738,7 +736,7 @@ Camera:
   m_TargetEye: 3
   m_HDR: 1
   m_AllowMSAA: 0
-  m_AllowDynamicResolution: 1
+  m_AllowDynamicResolution: 0
   m_ForceIntoRT: 0
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
@@ -771,14 +769,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   shaderEventChannel: {fileID: 11400000, guid: e6ce9cecf27ee224fae08d40778bbb79, type: 2}
-  shader: {fileID: 7200000, guid: 2ad962860d0ce4045b8b96dbf08ec981, type: 3}
-  renderShader: {fileID: 4800000, guid: 4cc54872339c36e48b16af3d185d693d, type: 3}
+  tracerShader: {fileID: 7200000, guid: 2ad962860d0ce4045b8b96dbf08ec981, type: 3}
+  easuShader: {fileID: 7200000, guid: 9a757fd57f2bbd143b5d28ddb578a899, type: 3}
+  rcasShader: {fileID: 7200000, guid: 2053ec7dbb730ff449222f9bf7fa517a, type: 3}
   mainLight: {fileID: 1604472753}
   fixLightToCamera: 0
   scaleFactor: 2
+  sharpness: 0
   reflectionIterations: 0
   reflectionIntensity: 0
   aoIntensity: 0
+  aaSamples: 8
 --- !u!114 &957625904
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -793,87 +794,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 5
   rotationSpeed: 2
---- !u!114 &957625906
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 957625897}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8b9a305e18de0c04dbd257a21cd47087, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  sharedProfile: {fileID: 11400000, guid: 92ed4b1861f1073439ae601f77799a19, type: 2}
-  isGlobal: 1
-  blendDistance: 0
-  weight: 1
-  priority: 0
---- !u!114 &957625907
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 957625897}
-  m_Enabled: 0
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 948f4100a11a5c24981795d21301da5c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  volumeTrigger: {fileID: 957625902}
-  volumeLayer:
-    serializedVersion: 2
-    m_Bits: 2147483647
-  stopNaNPropagation: 1
-  finalBlitToCameraTarget: 0
-  antialiasingMode: 1
-  temporalAntialiasing:
-    jitterSpread: 0.75
-    sharpness: 0.25
-    stationaryBlending: 0.95
-    motionBlending: 0.85
-  subpixelMorphologicalAntialiasing:
-    quality: 2
-  fastApproximateAntialiasing:
-    fastMode: 0
-    keepAlpha: 1
-  fog:
-    enabled: 1
-    excludeSkybox: 1
-  debugLayer:
-    lightMeter:
-      width: 512
-      height: 256
-      showCurves: 1
-    histogram:
-      width: 512
-      height: 256
-      channel: 3
-    waveform:
-      exposure: 0.12
-      height: 256
-    vectorscope:
-      size: 256
-      exposure: 0.12
-    overlaySettings:
-      linearDepth: 0
-      motionColorIntensity: 4
-      motionGridSize: 64
-      colorBlindnessType: 0
-      colorBlindnessStrength: 1
-  m_Resources: {fileID: 11400000, guid: d82512f9c8e5d4a4d938b575d47f88d4, type: 2}
-  m_ShowToolkit: 0
-  m_ShowCustomSorter: 0
-  breakBeforeColorGrading: 0
-  m_BeforeTransparentBundles: []
-  m_BeforeStackBundles: []
-  m_AfterStackBundles:
-  - assemblyQualifiedName: AMD_FIDELITY_FX.AMD_FIDELITY_FX_FSR_STACK, Assembly-CSharp,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-  - assemblyQualifiedName: AmdFidelityFxFsrEffect, Assembly-CSharp, Version=0.0.0.0,
-      Culture=neutral, PublicKeyToken=null
 --- !u!1 &1017836505
 GameObject:
   m_ObjectHideFlags: 0
