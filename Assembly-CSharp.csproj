@@ -71,6 +71,7 @@
      <None Include="Assets\Shaders\SphereTracingCompute.compute" />
      <None Include="Assets\Shaders\EASU.compute" />
      <None Include="Assets\TextMesh Pro\Resources\LineBreaking Following Characters.txt" />
+     <None Include="Assets\Shaders\NaiveUpSampling.compute" />
      <None Include="Assets\Shaders\BlendShader.shader" />
      <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Masking.shader" />
      <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF Overlay.shader" />
