@@ -1,0 +1,55 @@
+#pragma kernel Sharpen
+#pragma kernel Init
+
+#define A_GPU 1
+#define A_HLSL 1
+#define FSR_RCAS_F 1
+
+#include "Assets/ffx-fsr/ffx_a.hlsl"
+#include "Assets/ffx-fsr/ffx_fsr1.hlsl"
+
+// one element:
+// [0] = const0
+// ComputeBuffer is allocated with stride sizeof(int)*4, 1 element
+RWStructuredBuffer<uint4> rcasParameters;
+
+float rcasScale;
+
+SamplerState samLinearClamp;
+Texture2D<AF4> inputTex;
+RWTexture2D<AF4> outputTex;
+
+AF4 FsrRcasLoadF(ASU2 p)
+{
+    return inputTex.Load(int3(ASU2(p), 0));
+}
+void FsrRcasInputF(inout AF1 r, inout AF1 g, inout AF1 b) {}
+
+[numthreads(64,1,1)]
+void Sharpen (uint3 id : SV_DispatchThreadID, uint3 workGroupId : SV_GroupId, uint3 localThreadId : SV_GroupThreadId)
+{
+    AU2 gxy = ARmp8x8(localThreadId.x) + AU2(workGroupId.x << 4u, workGroupId.y << 4u);
+    AF3 col = AF3(0, 0, 0);
+    FsrRcasF(col.r, col.g, col.b, gxy, rcasParameters[0]);
+    outputTex[gxy] = AF4(col, 1);
+
+    gxy.x += 8u;
+    FsrRcasF(col.r, col.g, col.b, gxy, rcasParameters[0]);
+    outputTex[gxy] = AF4(col, 1);
+
+    gxy.y += 8u;
+    FsrRcasF(col.r, col.g, col.b, gxy, rcasParameters[0]);
+    outputTex[gxy] = AF4(col, 1);
+
+    gxy.x -= 8u;
+    FsrRcasF(col.r, col.g, col.b, gxy, rcasParameters[0]);
+    outputTex[gxy] = AF4(col, 1);
+}
+
+[numthreads(1,1,1)]
+void Init()
+{
+    AU4 con;
+    FsrRcasCon(con, rcasScale);
+    rcasParameters[0] = con;
+}

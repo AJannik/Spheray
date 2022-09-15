@@ -360,8 +360,8 @@ Shader "SphereTracing/SDF Editor"
                 for (int aa = 1; aa < aaSamples; aa++)
                 {
                     Ray ray;
-                    ray.origin = _WorldSpaceCameraPos + float4(rand2(i.uv), 0, 0) * 0.001;
-                    ray.dir = normalize(i.ray.xyz + float4(rand2(i.uv), 0, 0) * 0.0001);
+                    ray.origin = _WorldSpaceCameraPos + float4(rand2(i.uv), 0, 0) * aa * 0.001;
+                    ray.dir = normalize(i.ray.xyz + float4(rand2(i.uv), 0, 0) * aa * 0.0001);
                     color += trace(ray);
                 }
 
