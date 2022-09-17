@@ -1,33 +1,39 @@
 using System.Collections.Generic;
+using System.IO;
 using TMPro;
 using UnityEngine;
 
 public class DataHandler : MonoBehaviour
 {
     [SerializeField] private ShaderEventChannel shaderEventChannel;
+    [SerializeField] private UiEventChannel uiEventChannel;
     [SerializeField] private GameObject scrollView;
     [SerializeField] private GameObject uiPrefab;
     [SerializeField] private GameObject prefab;
 
     private ComputeBuffer primitiveBuffer;
-    private List<Transform> primitiveObjects = new List<Transform>();
+    [SerializeField] private List<Transform> primitiveObjects = new List<Transform>();
 
     private void OnEnable()
     {
         shaderEventChannel.PrimitiveValueChanged += CreateBuffer;
         shaderEventChannel.HierarchyChanged += RebuildHierarchy;
+        uiEventChannel.SaveSDF += SaveSDF;
+        uiEventChannel.LoadSDF += LoadSDF;
     }
 
     private void OnDisable()
     {
         shaderEventChannel.PrimitiveValueChanged -= CreateBuffer;
         shaderEventChannel.HierarchyChanged -= RebuildHierarchy;
+        uiEventChannel.SaveSDF -= SaveSDF;
+        uiEventChannel.LoadSDF -= LoadSDF;
     }
 
     private void Start()
     {
         GameObject go = Instantiate(prefab, transform);
-        go.name = $"Sphere {primitiveObjects.Count}";
+        go.name = $"Primitive {primitiveObjects.Count}";
         primitiveObjects.Add(go.transform);
 
         if (primitiveObjects.Count > 0)
@@ -57,13 +63,16 @@ public class DataHandler : MonoBehaviour
             SpawnPrimitive(Operation.Intersection);
         }
 
-        UpdateDataTransforms();
+        if (transform.childCount > 0)
+        {
+            UpdateDataTransforms();
+        }
     }
 
     private void SpawnPrimitive(Operation op)
     {
         GameObject go = Instantiate(prefab, primitiveObjects[0].transform);
-        go.name = $"Sphere {primitiveObjects.Count}";
+        go.name = $"Primitive {primitiveObjects.Count}";
         go.GetComponent<PrimitiveDataHandler>().operation = op;
         primitiveObjects.Add(go.transform);
         GameObject ui = Instantiate(uiPrefab, scrollView.transform);
@@ -114,11 +123,11 @@ public class DataHandler : MonoBehaviour
 
     private void RebuildHierarchy()
     {
-        primitiveObjects = RebuildList(transform.GetChild(0));
+        primitiveObjects = RebuildListBufferOptimised(transform.GetChild(0));
         CreateBuffer();
     }
 
-    private List<Transform> RebuildList(Transform root)
+    private List<Transform> RebuildListBufferOptimised(Transform root)
     {
         List<Transform> list = new List<Transform>();
         Queue<Transform> queue = new Queue<Transform>();
@@ -136,6 +145,91 @@ public class DataHandler : MonoBehaviour
         }
 
         return list;
+    }
+    
+    private List<Transform> GetListInOrder(Transform root)
+    {
+        List<Transform> list = new List<Transform>();
+        Queue<Transform> queue = new Queue<Transform>();
+        queue.Enqueue(root);
+
+        while (queue.Count > 0)
+        {
+            Transform node = queue.Dequeue();
+            list.Add(node);
+
+            for (int i = 0; i < node.childCount; i++)
+            {
+                queue.Enqueue(node.GetChild(i));
+            }
+        }
+
+        return list;
+    }
+
+    private void SaveSDF(string fileName)
+    {
+        File.WriteAllText(Application.dataPath + $"/data/{fileName}.json", GenerateJson());
+        Debug.Log($"Saved {fileName}.json successfully.");
+    }
+    
+    private string GenerateJson()
+    {
+        List<Transform> primitivesInOrder = GetListInOrder(transform.GetChild(0));
+        DataHolder data = new() {primitives = new List<Primitive>()};
+        foreach (Transform t in primitivesInOrder)
+        {
+            Matrix4x4 m = Matrix4x4.TRS(t.position, t.rotation, Vector3.one);
+            PrimitiveDataHandler pdh = t.GetComponent<PrimitiveDataHandler>();
+            data.primitives.Add(new Primitive
+            {
+                pos = t.position, size = t.localScale, bevel = pdh.bevel, rotationMatrix = m, parentIndex = primitiveObjects.IndexOf(t.parent),
+                sdfOperation = (int) pdh.operation, type = (int) pdh.type
+            });
+        }
+
+        return JsonUtility.ToJson(data);
+    }
+
+    private void LoadSDF(DataHolder data)
+    {
+        DeleteOldHierarchy();
+        foreach (Primitive prim in data.primitives)
+        {
+            GameObject go;
+            if (prim.parentIndex < 0)
+            {
+                go = Instantiate(prefab, transform);
+            }
+            else
+            {
+                go = Instantiate(prefab, primitiveObjects[prim.parentIndex].transform);
+            }
+            
+            go.name = $"Primitive {primitiveObjects.Count}";
+            go.transform.position = prim.pos;
+            go.transform.rotation = prim.rotationMatrix.rotation;
+            go.transform.localScale = prim.size;
+            PrimitiveDataHandler pdh = go.GetComponent<PrimitiveDataHandler>();
+            pdh.operation = (Operation) prim.sdfOperation;
+            pdh.bevel = prim.bevel;
+            pdh.type = (PrimitiveSdfType) prim.type;
+            primitiveObjects.Add(go.transform);
+            GameObject ui = Instantiate(uiPrefab, scrollView.transform);
+            ui.GetComponentInChildren<TextMeshProUGUI>().text = go.name;
+        }
+        
+        RebuildHierarchy();
+    }
+
+    private void DeleteOldHierarchy()
+    {
+        for (int i = primitiveObjects.Count - 1; i >= 0; i--)
+        {
+            Destroy(primitiveObjects[i].gameObject);
+        }
+
+        primitiveObjects.Clear();
     }
 
     private void OnDestroy()
