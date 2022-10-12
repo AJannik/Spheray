@@ -1,7 +1,7 @@
 # Spheray
 Using Unity 2021.3.9f1 LTS
 
-Spheray is Project to provide a 3D Editor Software for working with SDF Models.
+Spheray is a Project to provide a 3D Editor Software for working with SDF Models.
 For Rendering Spheray uses a classical SphereTracing /Raymarching Algorithm
 
 Currently there is no UI implemented. To use Spheray have have to use the Unity Editor Inspector.
