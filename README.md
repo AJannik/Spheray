@@ -1,8 +1,15 @@
 # Spheray
+Using Unity 2021.3.9f1 LTS
+
 Spheray is Project to provide a 3D Editor Software for working with SDF Models.
 For Rendering Spheray uses a classical SphereTracing /Raymarching Algorithm
 
 Currently there is no UI implemented. To use Spheray have have to use the Unity Editor Inspector.
+
+Keys:
+b := Spawn sphere as Union
+n := Spawn sphere as Difference
+m := Spawn sphere as Intersection
 
 # Quality and Performance
 Best Quality is archieved when using "Scale Factor = 1" and "Aa Samples = 8". These settings are very demanding on your hardware!
