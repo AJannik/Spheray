@@ -13,6 +13,7 @@ struct Primitive
     float3 pos;
     float3 size;
     float bevel;
+    float smoothing;
     float4x4 rotationMatrix;
     int sdfOperation;
     int parentIndex;
@@ -147,16 +148,16 @@ float getPrimitiveSdf(float3 p, Primitive primitive)
     }
 }
 
-float getSDF(float parent, float current, int index)
+float getSDF(float parent, float current, int index, float smoothing)
 {
     switch (primitives[index].sdfOperation)
     {
     case 0:
-        return unionSDF(parent, current, 0.03);
+        return unionSDF(parent, current, smoothing);
     case 1:
-        return differenceSDF(parent, current, 0.03);
+        return differenceSDF(parent, current, smoothing);
     case 2:
-        return intersectSDF(parent, current, 0.03);
+        return intersectSDF(parent, current, smoothing);
     default:
         return current;
     }
@@ -179,7 +180,7 @@ float distFunc(float3 p)
     for (int ind = numPrimitives - 1; ind > 0; ind--)
     {
         distFields[primitives[ind].parentIndex] = getSDF(distFields[primitives[ind].parentIndex],
-                                                         distFields[ind], ind);
+                                                         distFields[ind], ind, primitives[ind].smoothing);
     }
 
     return distFields[0];

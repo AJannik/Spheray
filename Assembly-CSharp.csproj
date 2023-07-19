@@ -44,14 +44,14 @@
      <Compile Include="Assets\Scripts\ShaderEventChannel.cs" />
      <Compile Include="Assets\Scripts\DataHandler.cs" />
      <Compile Include="Assets\Scripts\Primitive.cs" />
+     <Compile Include="Assets\Scripts\UiEventChannel.cs" />
      <Compile Include="Assets\Scripts\CameraController.cs" />
+     <Compile Include="Assets\Scripts\Ui\SaveLoadHandler.cs" />
+     <Compile Include="Assets\Scripts\DataHolder.cs" />
      <Compile Include="Assets\Scripts\PrimitiveDataHandler.cs" />
      <Compile Include="Assets\Scripts\SphereTracingHandler.cs" />
      <Compile Include="Assets\Scripts\LightHandler.cs" />
      <Compile Include="Assets\Scripts\SphereTracingCompute.cs" />
-     <Compile Include="Assets\Scripts\UiEventChannel.cs" />
-     <Compile Include="Assets\Scripts\Ui\SaveLoadHandler.cs" />
-     <Compile Include="Assets\Scripts\DataHolder.cs" />
      <None Include="Assets\Shaders\RCAS.compute" />
      <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />
      <None Include="Assets\TextMesh Pro\Shaders\TMP_SDF-Mobile Overlay.shader" />

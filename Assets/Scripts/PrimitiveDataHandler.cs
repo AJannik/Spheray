@@ -6,11 +6,13 @@ public class PrimitiveDataHandler : MonoBehaviour
     [SerializeField] private ShaderEventChannel shaderEventChannel;
     public Operation operation = Operation.Union;  // 0 = union, 1 = difference, 2 = intersect
     public PrimitiveSdfType type = PrimitiveSdfType.Sphere;
-    [Range(0f, 0.2f)] public float bevel = 0f;
+    [Range(0f, 0.4f)] public float bevel = 0f;
+    [Range(0f, 1f)] public float smoothing = 0f;
     private Operation oldOperation = Operation.Union;
     private PrimitiveSdfType oldSdfType = PrimitiveSdfType.Sphere;
     private int oldSiblingIndex;
     private float oldBevel;
+    private float oldSmoothing;
 
     private void Start()
     {
@@ -29,11 +31,12 @@ public class PrimitiveDataHandler : MonoBehaviour
             return;    
         }
         
-        if (oldOperation != operation || oldSdfType != type || Math.Abs(oldBevel - bevel) > 0.01f)
+        if (oldOperation != operation || oldSdfType != type || Math.Abs(oldBevel - bevel) > 0.01f || Math.Abs(oldSmoothing - smoothing) > 0.005f)
         {
             oldOperation = operation;
             oldSdfType = type;
             oldBevel = bevel;
+            oldSmoothing = smoothing;
             shaderEventChannel.RaisePrimitiveValueChanged();
         }
     }

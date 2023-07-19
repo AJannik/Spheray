@@ -88,7 +88,7 @@ public class DataHandler : MonoBehaviour
             PrimitiveDataHandler pdh = t.GetComponent<PrimitiveDataHandler>();
             primitives.Add(new Primitive
             {
-                pos = t.position, size = t.localScale, bevel = pdh.bevel, rotationMatrix = m, parentIndex = primitiveObjects.IndexOf(t.parent),
+                pos = t.position, size = t.localScale, bevel = pdh.bevel, smoothing = pdh.smoothing, rotationMatrix = m, parentIndex = primitiveObjects.IndexOf(t.parent),
                 sdfOperation = (int) pdh.operation, type = (int) pdh.type
             });
         }
